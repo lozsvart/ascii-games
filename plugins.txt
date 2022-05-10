@@ -2,4 +2,5 @@ minesweeper
 calculator
 hello
 hanoi
+hanoi_hard
 maze
