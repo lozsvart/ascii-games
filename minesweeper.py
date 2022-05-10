@@ -87,7 +87,10 @@ class Minesweeper:
             if self.mines[coord]:
                 return "!"
             else:
-                return str(self.count_neighbor_mines(coord))
+                if self.count_neighbor_mines(coord) > 0:
+                    return str(self.count_neighbor_mines(coord))
+                else:
+                    return "."
         return " "
 
 def neighbours(cell, sizes):
