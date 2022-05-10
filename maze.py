@@ -39,7 +39,8 @@ class App(Controllable):
             Key.LEFT: 'a',
             Key.RIGHT: 'd'
         }.get(key)
-        self.status = get_new_status(command, self.status, self.maze)
+        if command is not None:
+            self.status = get_new_status(command, self.status, self.maze)
     
     def show(self):
         maze_art = get_maze_art(self.maze, self.status)
@@ -92,9 +93,19 @@ def create(string):
     if 0 <= x < len(lines):
       if 0 <= y < len(lines[x]):
         return space_to_transparent(lines[x][y])
-    return TRANSPARENT  
+    return TRANSPARENT
   return result
-    
+
+def create_var(string_provider):
+  def result(coord):
+    lines = string_provider().split("\n")
+    x, y = coord
+    if 0 <= x < len(lines):
+      if 0 <= y < len(lines[x]):
+        return space_to_transparent(lines[x][y])
+    return TRANSPARENT
+  return result
+
 def translate(string_art, vect):
   return lambda coord: string_art((coord[0] - vect[0], coord[1] - vect[1]))
 
@@ -208,15 +219,6 @@ def create_status(choice):
     }
 
 
-def print_instructions(choices):
-  print("Possible moves:")
-  for choice in choices:
-      print("# " + choice["description"] + ":")
-      status = json.dumps(create_status(choice))
-      print("STATUS =", base64.b64encode(status.encode("utf-8")))
-      print("#")
-      print()
-
 def get_direction_name(location, neighbor):
     for direction in DIRECTIONS:
       if add_tuples(location, DIRECTIONS[direction]) == tuple(neighbor):
@@ -226,20 +228,6 @@ def get_other_node(edge, node):
   for a_node in edge:
     if a_node != node:
       return a_node
-
-def get_move_choice(neighbor, status):
-  return {
-      "description": "Go " + get_direction_name(status["location"], neighbor),
-      "explored": list(set(map(tuple, status["explored"]))|{neighbor}),
-      "location": neighbor
-  }
-
-def get_choices(status, doors):
-    location = status["location"]
-    wait_choice = {"description": "Wait", "explored": status["explored"], "location": location}
-    neighbors = set(map(lambda door: get_other_node(door, location), filter(lambda door: location in door, doors)))
-    move_choices = list(map(lambda neighbor: get_move_choice(neighbor, status), neighbors))
-    return [wait_choice] + move_choices
 
 open_adjacent_door = create(
 r"""
@@ -354,8 +342,7 @@ close_wall = create_frame(14, 15)
 clock_frame = create_frame(3, 9)
 
 def wall_clock():
-  current_time = datetime.datetime.now()
-  clock = create(current_time.strftime("%H:%M"))
+  clock = create_var(lambda: datetime.datetime.now().strftime("%H:%M"))
   return translate(union([clock_frame, translate(clock, (1, 2))]), (3, 2))
 
 def split_text(text, max_width = 11):
