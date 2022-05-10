@@ -5,7 +5,7 @@ import random
 class App(Controllable):
 
     def __init__(self):
-        self.game = Minesweeper(10, 10, 8)
+        self.game = Minesweeper(8, 8, 10)
         self.cursor = (0, 0)
 
     def on_press(self, key):
