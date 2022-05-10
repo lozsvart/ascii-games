@@ -9,7 +9,7 @@ class MenuApp(Controllable):
         self.app = None
         self.selected = 0
 
-    def on_press(self, key):
+    def press(self, key):
         if self.app is None:
             if key in {Key.A, Key.B}:
                 self.app = importlib.import_module(APPS[self.selected], '.').App()
@@ -19,7 +19,7 @@ class MenuApp(Controllable):
                 self.selected -= 1
             self.selected = max(0, min(len(APPS) - 1, self.selected))
         else:
-            self.app.on_press(key)
+            self.app.press(key)
 
     def render(self):
         return "Available games:\n" +\

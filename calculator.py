@@ -8,7 +8,7 @@ class Calculator:
         self.operation = None
         self.memory = None
     
-    def on_press(self, button):
+    def press(self, button):
         if button in {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}:
             if self.insert_mode:
                 self.content += button
@@ -55,7 +55,7 @@ class App(Controllable):
         self.selected_button = (1, 0)
         self.buttons = [[".", "0", "=", "/"], ["1", "2", "3", "*"], ["4", "5", "6", "-"], ["7", "8", "9", "+"]]
     
-    def on_press(self, key):
+    def press(self, key):
         if key == Key.A:
             self.push_button()
         elif key == Key.RIGHT:
@@ -69,7 +69,7 @@ class App(Controllable):
 
     def push_button(self):
         button = self.get_selected()
-        self.calculator.on_press(button)
+        self.calculator.press(button)
 
     def get_selected(self):
         x, y = self.selected_button

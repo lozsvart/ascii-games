@@ -8,7 +8,7 @@ class App(Controllable):
         self.game = Minesweeper(8, 8, 10)
         self.cursor = (0, 0)
 
-    def on_press(self, key):
+    def press(self, key):
         if key == Key.RIGHT:
             self.move_cursor((0, 1))
         elif key == Key.LEFT:

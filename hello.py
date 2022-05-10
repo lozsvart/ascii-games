@@ -7,7 +7,7 @@ class App(Controllable):
         self.prefix = "Hello "
         self.cursor = 0
         
-    def on_press(self, key):
+    def press(self, key):
         if key == Key.RIGHT:
             self.cursor += 1
             self.cursor = min(10, self.cursor)

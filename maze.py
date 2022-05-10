@@ -32,7 +32,7 @@ class App(Controllable):
         )
         self.status = get_default_status()
     
-    def on_press(self, key):
+    def press(self, key):
         command = {
             Key.UP: 'w',
             Key.DOWN: 's',

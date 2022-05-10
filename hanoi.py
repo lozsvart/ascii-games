@@ -10,7 +10,7 @@ class App(Controllable):
         self.selected = None
         self.tower = HanoiTower([0] * SIZE)
 
-    def on_press(self, key):
+    def press(self, key):
         if key == Key.RIGHT:
             self.cursor += 1
             self.cursor %= RODS

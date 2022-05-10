@@ -7,7 +7,7 @@ class App(Controllable):
         self.path = [(5, 5), (5, 6), (5, 7)]
         self.selected_leg_index = 0
     
-    def on_press(self, key):
+    def press(self, key):
         #if key == Key.B:
         #    self.selected_leg_index = -1 - self.selected_leg_index
         if key == Key.UP:

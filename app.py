@@ -9,7 +9,7 @@ class Key(Enum):
     B = 5
 
 class Controllable:
-    def on_press(self, key):
+    def press(self, key):
         pass
     
     def show(self):
