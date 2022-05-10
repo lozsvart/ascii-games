@@ -1,7 +1,7 @@
 from app import Key, Controllable
 import importlib
 
-APPS = ['minesweeper', 'calculator', 'hello', 'hanoi', 'maze']
+APPS = [line.strip() for line in open('plugins.txt', 'r').readlines()]
 
 class MenuApp(Controllable):
 
@@ -30,4 +30,3 @@ class MenuApp(Controllable):
             return self.render()
         else:
             return self.app.show()
-

@@ -39,7 +39,10 @@ class App(Controllable):
     def show(self):
         lines, columns = self.game.dimension
         separator = "+" + "---+" * columns + "\n"
-        return separator + separator.join(self.get_line(i) for i in range(lines)) + separator
+        result = separator + separator.join(self.get_line(i) for i in range(lines)) + separator
+        result += "Undiscovered empty fields: " + str(self.game.get_undiscovered_empty_fields()) + "\n"
+        result += "Mines found: " + str(self.game.get_mines_found())
+        return result
 
 class Minesweeper:
 
@@ -66,6 +69,14 @@ class Minesweeper:
         for coord in mines:
             self.mines[coord] = True
         self.mines_generated = True
+
+    def get_undiscovered_empty_fields(self):
+        width, height = self.dimension
+        return len(set(coord for coord in product(range(width), range(height)) if not self.discovered[coord] and not self.mines[coord]))
+
+    def get_mines_found(self):
+        width, height = self.dimension
+        return len(set(coord for coord in product(range(width), range(height)) if self.discovered[coord] and self.mines[coord]))
 
     def discover(self, coord):
         if not self.mines_generated:
