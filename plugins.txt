@@ -4,3 +4,4 @@ hello
 hanoi
 hanoi_hard
 maze
+catan_generator
