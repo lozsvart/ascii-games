@@ -40,8 +40,9 @@ class App(Controllable):
         lines, columns = self.game.dimension
         separator = "+" + "---+" * columns + "\n"
         result = separator + separator.join(self.get_line(i) for i in range(lines)) + separator
-        result += "Undiscovered empty fields: " + str(self.game.get_undiscovered_empty_fields()) + "\n"
-        result += "Mines found: " + str(self.game.get_mines_found())
+        result += ("Undiscovered empty fields: " + str(self.game.get_undiscovered_empty_fields()) if self.game.mines_generated else "") + "\n"
+        result += "You lost :(" if self.game.get_win_status() == "lost" else ""
+        result += "You won!" if self.game.get_win_status() == "won" else ""
         return result
 
 class Minesweeper:
@@ -78,7 +79,16 @@ class Minesweeper:
         width, height = self.dimension
         return len(set(coord for coord in product(range(width), range(height)) if self.discovered[coord] and self.mines[coord]))
 
+    def get_win_status(self):
+        if self.get_mines_found() > 0:
+            return "lost"
+        if self.get_undiscovered_empty_fields() == 0:
+            return "won"
+        return None
+
     def discover(self, coord):
+        if self.get_win_status() == "won":
+            return
         if not self.mines_generated:
             self.generate_mines({coord})
         if not self.is_flagged(coord):
