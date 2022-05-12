@@ -47,8 +47,9 @@ class App(Controllable):
         return render_status(self.maze, self.status, maze_art)
 
 COMPACT_VIEW = True
+RELATIVE_VIEW = True
 FOG_OF_WAR_ENABLED = True
-SHOW_MAP = True
+SHOW_MAP = False
 START_LOCATION = (0, 0)
 
 # ---------------------
@@ -64,6 +65,10 @@ N = (-1, 0)
 W = (0, -1)
 S = (1, 0)
 E = (0, 1)
+
+FORWARD = lambda direction: direction
+LEFT = lambda direction: (-direction[1], direction[0])
+RIGHT = lambda direction: (direction[1], -direction[0])
 
 DIRECTIONS = {
   "North": N,
@@ -203,7 +208,13 @@ def create_fog_of_war(status):
 
 def create_player_art(status):
   loc_x, loc_y = status["location"]
-  return translate(create("X"), (1 + 2 * loc_x, 1 + 2 * loc_y))
+  symbol = {
+      N: "^",
+      W: "<",
+      E: ">",
+      S: "v"
+  }.get(status["direction"])
+  return translate(create(symbol), (1 + 2 * loc_x, 1 + 2 * loc_y))
 
 def get_maze_art(maze, status):
     size_x, size_y = maze.dimension
@@ -439,30 +450,49 @@ def get_wall_decoration(status, wall_decorations, direction):
     location = status["location"]
     return wall_decorations.get((location, direction), create_empty())
 
+def get_relative_direction(start, end):
+    while start != N:
+        start = LEFT(start)
+        end = LEFT(end)
+    return {
+        N: "front",
+        W: "left",
+        E: "right",
+        S: "back"
+    }.get(end)
+
 def render_status(maze, status, maze_art):
     arts = {}
+    arts["empty"] = create("")
     for direction in DIRECTIONS:
         junction = get_junction(status, maze.doors, direction)
-        first_person_art = create_first_person_art(junction, direction,
+        label = "" if RELATIVE_VIEW else direction
+        first_person_art = create_first_person_art(junction, label,
                                                    get_wall_decoration(status, maze.wall_decors, direction))
         arts[direction] = first_person_art
+        arts[get_relative_direction(status["direction"], DIRECTIONS[direction])] = first_person_art
     map_art = maze_art if SHOW_MAP else create("")
+    
+    up_art = arts["front" if RELATIVE_VIEW else "North"]
+    down_art = arts["empty" if RELATIVE_VIEW else "South"]
+    right_art = arts["right" if RELATIVE_VIEW else "East"]
+    left_art = arts["left" if RELATIVE_VIEW else "West"]
 
     if COMPACT_VIEW:
         art = union([
-                 translate(arts["North"], (0, 16)),
-                 translate(arts["South"], (30, 16)),
-                 translate(arts["East"], (15, 32)),
-                 translate(arts["West"], (15, 0)),
+                 translate(up_art, (0, 16)),
+                 translate(down_art, (30, 16)),
+                 translate(right_art, (15, 32)),
+                 translate(left_art, (15, 0)),
                  translate(map_art, (16, 18))
         ])
         return render_art(art, (46, 49))
     else:
         first_person_view = union([
-                 translate(arts["North"], (0, 0)),
-                 translate(arts["South"], (15, 16)),
-                 translate(arts["East"], (0, 16)),
-                 translate(arts["West"], (15, 0))
+                 translate(up_art, (0, 0)),
+                 translate(down_art, (15, 16)),
+                 translate(right_art, (0, 16)),
+                 translate(left_art, (15, 0))
         ])
         art = union([
             translate(first_person_view, (15, 0)),
@@ -470,41 +500,45 @@ def render_status(maze, status, maze_art):
         ])
         return render_art(art, (46, 31))
 
-def get_direction(command):
-    command_directions = {
-        "s": S,
-        "w": N,
-        "d": E,
-        "a": W
+def get_move_command(command):
+    move_commands = {
+        "s": lambda direction: direction,
+        "w": FORWARD,
+        "d": RIGHT,
+        "a": LEFT
     }
-    return command_directions[command]
-    
+    return move_commands[command]
+
 def is_valid_move(location, destination, maze):
     return create_edge(location, destination) in maze.doors
 
-def do_move_and_get_status(direction, status, maze):
+def do_move_and_get_status(move_command, status, maze):
     location = status["location"]
-    destination = add_tuples(direction, status["location"])
-    if is_valid_move(location, destination, maze):
-        return {
-            "location": destination,
-            "explored": status["explored"] + [destination]
-        }
-        
-    return status
+    destination = location
+    direction = move_command(status["direction"])
+    if move_command == FORWARD:
+        destination = add_tuples(direction, status["location"])
+        if not is_valid_move(location, destination, maze):
+            destination = location
+    return {
+        "location": destination,
+        "direction": direction,
+        "explored": status["explored"] + [destination]
+    }
 
 def get_new_status(command, status, maze):
     command = command.lower()
     if command in {"q"}:
         return None
     if command in {"w", "a", "s", "d"}:
-        direction = get_direction(command)
+        direction = get_move_command(command)
         return do_move_and_get_status(direction, status, maze)
     return status       
 
 def get_default_status():
     return {
         "location": START_LOCATION,
+        "direction": N,
         "explored": [START_LOCATION]
     }
 
