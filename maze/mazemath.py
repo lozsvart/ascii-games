@@ -36,13 +36,21 @@ class Coord:
 
     def dist(self, other):
         return (self-other).size()
+    
+    def __eq__(self, other):
+        return self.coords == other.coords
+    
+    def __hash__(self):
+        return self.coords.__hash__()
 
     def __str__(self):
         return f"({self.coords[0]}, {self.coords[1]})"
-
 
 class Direction(Enum):
     NORTH = 0
     WEST = 1
     SOUTH = 3
     EAST = 4
+
+def edge(start, end):
+    return frozenset({start, end})
