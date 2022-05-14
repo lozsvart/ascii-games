@@ -2,7 +2,6 @@ from enum import Enum
 from first_person_maze.command import Command
 from first_person_maze.refactor_utils import transform_param
 
-COMPACT_VIEW = True
 FOG_OF_WAR_ENABLED = True
 SHOW_MAP = True
 START_LOCATION = (0, 0)
@@ -167,7 +166,14 @@ def create_fog_of_war(status):
 
 def create_player_art(status):
   loc_x, loc_y = status["location"]
-  return translate(create("X"), (1 + 2 * loc_x, 1 + 2 * loc_y))
+  direction = status["direction"]
+  player_symbol = {
+      N: "^",
+      S: "v",
+      E: ">",
+      W: "<"
+  }.get(direction)
+  return translate(create(player_symbol), (1 + 2 * loc_x, 1 + 2 * loc_y))
 
 def get_maze_art(maze, status):
     size_x, size_y = maze.dimension
@@ -346,12 +352,11 @@ def get_short_corridor(goes_left, goes_right):
     return union(parts)
 
 def create_first_person_art(junction, label, wall_decoration):
-    label_art = translate(create(label), (0, 7 - (len(label) - 1) // 2))
     if 'back' not in junction:
-        result = union([label_art, close_wall,
+        result = union([close_wall,
                       translate(wall_decoration, (1, 1))])
     else:
-        parts = [label_art, open_adjacent_door]
+        parts = [open_adjacent_door]
         goes_left = 'left' in junction
         goes_right = 'right' in junction
 
@@ -387,7 +392,8 @@ def get_junction(status, maze_edges, direction):
     result = []
     for junction, field in zip(('forward', 'left', 'right', 'back'),
                                (forward, left, right, back)):
-        if frozenset({middle, field}) in maze_edges:
+        door = maze_edges.get(frozenset({middle, field}))
+        if door is not None and door.is_open():
             result.append(junction)
             
     return set(result)
@@ -404,6 +410,26 @@ def get_wall_decoration(status, wall_decorations, direction):
     wall_decor = wall_decorations.get((location, direction))
     return wall_decor.get_art() if wall_decor != None else create_empty()
 
+def get_relative_direction(start, end):
+    return {
+        (N, "North"): "front",
+        (N, "West"): "left",
+        (N, "East"): "right",
+        (N, "South"): "back",
+        (S, "North"): "back",
+        (S, "West"): "right",
+        (S, "East"): "left",
+        (S, "South"): "front",
+        (W, "North"): "right",
+        (W, "West"): "front",
+        (W, "East"): "back",
+        (W, "South"): "left",
+        (E, "North"): "left",
+        (E, "West"): "back",
+        (E, "East"): "front",
+        (E, "South"): "right",
+    }.get((start, end))
+
 def render_status(maze, status, maze_art):
     arts = {}
     for direction in DIRECTIONS:
@@ -411,38 +437,25 @@ def render_status(maze, status, maze_art):
         first_person_art = create_first_person_art(junction, direction,
                                                    get_wall_decoration(status, maze.wall_decors, direction))
         arts[direction] = first_person_art
+        arts[get_relative_direction(status["direction"], direction)] = first_person_art
     map_art = maze_art if SHOW_MAP else create("")
 
-    if COMPACT_VIEW:
-        art = union([
-                 translate(arts["North"], (0, 16)),
-                 translate(arts["South"], (30, 16)),
-                 translate(arts["East"], (15, 32)),
-                 translate(arts["West"], (15, 0)),
-                 translate(map_art, (16, 18))
-        ])
-        return render_art(art, (46, 49))
-    else:
-        first_person_view = union([
-                 translate(arts["North"], (0, 0)),
-                 translate(arts["South"], (15, 16)),
-                 translate(arts["East"], (0, 16)),
-                 translate(arts["West"], (15, 0))
-        ])
-        art = union([
-            translate(first_person_view, (15, 0)),
-            translate(map_art, (2, 9))
-        ])
-        return render_art(art, (46, 31))
+    art = union([
+             translate(arts["front"], (0, 16)),
+             translate(arts["right"], (15, 32)),
+             translate(arts["left"], (15, 0)),
+             translate(map_art, (16, 18))
+    ])
+    return render_art(art, (46, 49))
+
 
 def get_direction(command, original_direction):
-    command_directions = {
-        Command.DOWN: S,
-        Command.UP: N,
-        Command.RIGHT: E,
-        Command.LEFT: W
+    transformations = {
+        Command.RIGHT: lambda coord: (coord[1], -coord[0]),
+        Command.LEFT: lambda coord: (-coord[1], coord[0]),
+        Command.UP: lambda coord: coord
     }
-    return command_directions[command]
+    return transformations.get(command)(original_direction)
     
 def is_valid_move(location, destination, maze):
     door = maze.doors.get(create_edge(location, destination))
@@ -468,13 +481,22 @@ def do_interaction(status, maze):
         W: "West",
         E: "East"
     }.get(status["direction"])
-    maze.wall_decors.get((location, direction)).interact()
+    obj = maze.wall_decors.get((location, direction))
+    if obj is not None:
+        obj.interact()
     return status
 
 def get_new_status(command, status, maze):
     if command in {Command.UP, Command.RIGHT, Command.LEFT}:
         direction = get_direction(command, status["direction"])
-        return do_move_and_get_status(direction, status, maze)
+        if command == Command.UP:
+            return do_move_and_get_status(direction, status, maze)
+        else:
+            return {
+                "location": status["location"],
+                "direction": direction,
+                "explored": status["explored"]
+            }
     if command in {Command.A}:
         return do_interaction(status, maze)
     return status       
@@ -501,7 +523,8 @@ class WallObject:
         return self.art
     
     def interact(self):
-        self.wire.status = not self.wire.status
+        if self.wire is not None:
+            self.wire.status = not self.wire.status
 
 class Wire:
     def __init__(self):
