@@ -1,8 +1,8 @@
+maze
 minesweeper
 calculator
 hello
 hanoi
 hanoi_hard
 hexa_maze
-maze
 catan_generator
