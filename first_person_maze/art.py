@@ -3,18 +3,6 @@ from first_person_maze.maze_math import *
 FOG_OF_WAR_ENABLED = True
 SHOW_MAP = True
 
-N = (-1, 0)
-W = (0, -1)
-S = (1, 0)
-E = (0, 1)
-
-DIRECTIONS = {
-  "North": N,
-  "South": S,
-  "East": E,
-  "West": W
-}
-
 TRANSPARENT = ""
 
 def space_to_transparent(char):
@@ -84,7 +72,6 @@ def create_frame(size_x, size_y):
     return TRANSPARENT
   return result
 
-
 def resolve_char(char):
   return  " " if char == TRANSPARENT else char
 
@@ -94,7 +81,6 @@ def render_art(string_art, dimension):
   for i in range(size_x):
     result.append("".join([resolve_char(string_art((i, j))) for j in range(size_y)]))
   return "\n".join(result)
-
 
 open_adjacent_door = create(
 r"""
@@ -208,26 +194,6 @@ left_corridor = translate(create("""
 close_wall = create_frame(14, 15)
 clock_frame = create_frame(3, 9)
 
-
-def get_junction(status, maze_edges, direction):
-    dir_vector = DIRECTIONS[direction]
-    left_vector = rotate_left(dir_vector)
-    
-    back = status["location"]
-    middle = add_tuples(back, dir_vector)
-    forward = add_tuples(middle, dir_vector)
-    left = add_tuples(middle, left_vector)
-    right = add_tuples(middle, negate(left_vector))
-
-    result = []
-    for junction, field in zip(('forward', 'left', 'right', 'back'),
-                               (forward, left, right, back)):
-        door = maze_edges.get(frozenset({middle, field}))
-        if door is not None and door.is_open():
-            result.append(junction)
-            
-    return set(result)
-
 def get_writing_art(writing):
     lines = len(writing.split('\n'))
     return translate(create(writing), (6 - lines // 2, 1))
@@ -258,17 +224,11 @@ def get_maze_art(maze, status):
                                  create_maze_art(maze.doors),
                                  create_player_art(status)]), (2 * size_x + 1, 2 * size_y + 1))
 
-
 def create_maze_art(doors):
   def result(coord):
     row, column = coord
     return get_maze_symbol(row, column, doors)
   return result
-
-def get_distance(coord, coords):
-  def dist(first, second):
-    return max(abs(first[0]-second[0]), abs(first[1]-second[1]))
-  return min(map(lambda coor: dist(coord, coor), coords))
 
 def get_maze_symbol(row, column, doors):
     is_field = row % 2 == 1 and column % 2 == 1
@@ -278,21 +238,19 @@ def get_maze_symbol(row, column, doors):
     OCCUPIED = "#"
     if is_field:
         return EMPTY
+    if not is_vert_wall and not is_hor_wall:
+        return OCCUPIED
     if is_vert_wall:
         left_neighbor = (row // 2 - 1, column // 2)
         right_neighbor = (row // 2, column // 2)
         door = doors.get(create_edge(left_neighbor, right_neighbor))
-        if door is not None and door.is_open():
-          return EMPTY
-        return OCCUPIED
+
     if is_hor_wall:
         up_neighbor = (row // 2, column // 2 - 1)
         down_neighbor = (row // 2, column // 2)
         door = doors.get(create_edge(up_neighbor, down_neighbor))
-        if door is not None and door.is_open():
-          return EMPTY
-        return OCCUPIED
-    return OCCUPIED
+
+    return EMPTY if door is not None and door.is_open() else OCCUPIED
 
 def render_status(maze, status, maze_art):
     arts = {}
@@ -325,7 +283,6 @@ def split_text(text, max_width = 11):
                   result += "\n" + word
               else:
                   result += " " + word
-            
           else:
               result += word
               line_length += len(word)
@@ -364,33 +321,13 @@ def create_first_person_art(junction, label, wall_decoration):
 
         parts.append(left_corridor if goes_left else left_wall)
         parts.append(right_corridor if goes_right else right_wall)
-        
+
         result = union(parts)
 
     return frame_art(result, (14, 15))
-
 
 def get_wall_decoration(status, wall_decorations, direction):
     location = status["location"]
     wall_decor = wall_decorations.get((location, direction))
     return wall_decor.get_art() if wall_decor != None else create_empty()
 
-def get_relative_direction(start, end):
-    return {
-        (N, "North"): "front",
-        (N, "West"): "left",
-        (N, "East"): "right",
-        (N, "South"): "back",
-        (S, "North"): "back",
-        (S, "West"): "right",
-        (S, "East"): "left",
-        (S, "South"): "front",
-        (W, "North"): "right",
-        (W, "West"): "front",
-        (W, "East"): "back",
-        (W, "South"): "left",
-        (E, "North"): "left",
-        (E, "West"): "back",
-        (E, "East"): "front",
-        (E, "South"): "right",
-    }.get((start, end))

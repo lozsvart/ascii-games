@@ -2,11 +2,7 @@ from first_person_maze.command import Command
 from first_person_maze.art import *
 from first_person_maze.maze_math import *
 
-# ---------------------
-
-from operator import add
 import datetime
-
 
 class Door:
     def __init__(self, open_provider = lambda: True):
@@ -19,21 +15,6 @@ class Door:
     def closed_door():
         return Door(lambda: False) 
 
-def create_status(choice):
-    return {
-        "explored": choice["explored"],
-        "location": choice["location"]
-    }
-
-def get_direction_name(location, neighbor):
-    for direction in DIRECTIONS:
-      if add_tuples(location, DIRECTIONS[direction]) == tuple(neighbor):
-        return direction
-
-def get_other_node(edge, node):
-  for a_node in edge:
-    if a_node != node:
-      return a_node
 
 def wall_clock():
   clock = create_var(lambda: datetime.datetime.now().strftime("%H:%M"))
@@ -44,8 +25,8 @@ def writing(message):
 
 def get_direction(command, original_direction):
     transformations = {
-        Command.RIGHT: lambda coord: (coord[1], -coord[0]),
-        Command.LEFT: lambda coord: (-coord[1], coord[0]),
+        Command.RIGHT: lambda coord: negate(rotate_left(coord)),
+        Command.LEFT: rotate_left,
         Command.UP: lambda coord: coord
     }
     return transformations.get(command)(original_direction)
@@ -63,14 +44,14 @@ def do_move_and_get_status(direction, status, maze):
             "direction": direction,
             "explored": status["explored"] + [destination]
         }
-        
+
     return status
 
 def do_interaction(status, maze):
     location = status["location"]
     direction = {
         N: "North",
-        S: "Sourh",
+        S: "South",
         W: "West",
         E: "East"
     }.get(status["direction"])
@@ -111,10 +92,10 @@ class WallObject:
     def __init__(self, art, wire = None):
         self.art = art
         self.wire = wire
-        
+
     def get_art(self):
         return self.art
-    
+
     def interact(self):
         if self.wire is not None:
             self.wire.status = not self.wire.status
@@ -138,23 +119,21 @@ def get_default_maze():
                     {(3, 2), (3, 1)}, {(1, 2), (0, 2)}, {(1, 4), (0, 4)}, {(1, 2), (1, 3)},
                     {(3, 4), (2, 4)}, {(2, 3), (2, 2)}, {(0, 3), (0, 2)}, {(4, 1), (4, 0)},
                     {(2, 0), (1, 0)}, {(2, 1), (2, 2)}, {(1, 2), (1, 1)}, {(3, 0), (3, 1)},
-                    {(0, 3), (0, 4)}, {(4, 4), (4, 3)}, {(2, 3), (3, 3)},  {(3, 1), (4, 1)}
+                    {(0, 3), (0, 4)}, {(4, 4), (4, 3)}, {(2, 3), (3, 3)}, {(3, 1), (4, 1)}
     ]
     doors = {frozenset(location): Door() for location in door_locations}
-    wire = Wire()
-    doors.update({frozenset({(1, 0), (0, 0)}): Door(wire.is_on)})
+    wire_1 = Wire()
+    wire_2 = Wire()
+    doors.update({frozenset({(1, 0), (0, 0)}): Door(wire_1.is_on), frozenset({(1, 2), (1, 3)}): Door(wire_2.is_on)})
     return Maze(
         dimension = (5, 5),
         doors = doors,
         wall_decors = {
-            ((1, 4), "East"): lever(wire),
+            ((1, 4), "East"): lever(wire_1),
+            ((1, 2), "South"): lever(wire_2),
             ((2, 4), "East"): writing("Congrats!\n\nYou have found the exit."),
             ((2, 4), "West"): writing("Hope you enjoyed the trip!"),
             ((1, 4), "South"): writing("Sorry, this is a dead end :("),
-            ((2, 1), "North"): writing("For where your treasure is, there your heart will be also.\n\nMt. 6, 21"),
-            ((1, 3), "North"): writing("Do you not know? Have you not heard? The Lord is the everlasting God, the Creator of the ends of the earth."),
-            ((1, 3), "East"): writing("He will not grow tired or weary, and his understand- ing no one can fathom."),
-            ((1, 3), "South"): writing("He gives strength to the weary and increases the power of the weak.\n\nIs. 40, 28-29"),
             ((2, 0), "East"): wall_clock()
         }
         )

@@ -40,4 +40,3 @@ if __name__ == "__main__":
     root.bind('<KeyPress>', lambda event: press(event, text_area))
     root.title("Widgets")
     root.mainloop()
-
