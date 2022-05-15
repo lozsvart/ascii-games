@@ -10,11 +10,10 @@ class Door:
 
     def is_open(self):
         return self.open_provider()
-    
+
     @staticmethod
     def closed_door():
         return Door(lambda: False) 
-
 
 def wall_clock():
   clock = create_var(lambda: datetime.datetime.now().strftime("%H:%M"))
@@ -30,7 +29,7 @@ def get_direction(command, original_direction):
         Command.UP: lambda coord: coord
     }
     return transformations.get(command)(original_direction)
-    
+
 def is_valid_move(location, destination, maze):
     door = maze.doors.get(create_edge(location, destination))
     return door.is_open() if door is not None else False
@@ -113,6 +112,38 @@ class WallObject:
         if self.wire is not None and command in {Command.UP, Command.DOWN}:
             self.wire.status = command == Command.UP
 
+class Safe:
+    def __init__(self, solution, wire = None):
+        self.solution = list(map(int, solution))
+        self.selected = 0
+        self.counters = [0] * len(solution)
+        self.wire = wire
+
+    def get_art(self):
+        number = "".join(map(str, self.counters))
+        selector = " " * self.selected + "^"
+        return translate(create(number + "\n" + selector), (5, 6 - len(self.solution) // 2))
+
+    def is_solved(self):
+        return self.counters == self.solution
+
+    def interact(self, command):
+        if command == Command.UP:
+            self.counters[self.selected] += 1
+        if command == Command.DOWN:
+            self.counters[self.selected] -= 1
+        if command == Command.RIGHT:
+            self.selected += 1
+        if command == Command.LEFT:
+            self.selected -= 1
+
+        for i in range(len(self.counters)):
+            self.counters[i] %= 10
+        self.selected %= len(self.counters)
+
+        if self.wire is not None:
+            self.wire.status = self.is_solved()
+
 class Wire:
     def __init__(self):
         self.status = False
@@ -127,6 +158,11 @@ class Maze:
         self.wall_decors = wall_decors
 
 def get_default_maze():
+    wire_1 = Wire()
+    wire_2 = Wire()
+    wire_3 = Wire()
+    safe = Safe("300", wire_3)
+
     door_locations = [{(3, 1), (2, 1)}, {(0, 1), (0, 0)}, {(3, 0), (2, 0)},
                     {(4, 2), (4, 3)}, {(0, 1), (1, 1)}, {(4, 4), (3, 4)}, {(3, 3), (4, 3)},
                     {(3, 2), (3, 1)}, {(1, 2), (0, 2)}, {(1, 4), (0, 4)}, {(1, 2), (1, 3)},
@@ -135,15 +171,19 @@ def get_default_maze():
                     {(0, 3), (0, 4)}, {(4, 4), (4, 3)}, {(2, 3), (3, 3)}, {(3, 1), (4, 1)}
     ]
     doors = {frozenset(location): Door() for location in door_locations}
-    wire_1 = Wire()
-    wire_2 = Wire()
-    doors.update({frozenset({(1, 0), (0, 0)}): Door(wire_1.is_on), frozenset({(1, 2), (1, 3)}): Door(wire_2.is_on)})
+    doors.update({
+        frozenset({(1, 0), (0, 0)}): Door(wire_1.is_on),
+        frozenset({(1, 2), (1, 3)}): Door(wire_2.is_on),
+        frozenset({(4, 3), (4, 4)}): Door(wire_3.is_on)
+    })
     return Maze(
         dimension = (5, 5),
         doors = doors,
         wall_decors = {
+            ((0, 0), "North"): writing("Controls: up, down, left, right and space"),
             ((1, 4), "East"): lever(wire_1),
             ((1, 2), "South"): lever(wire_2),
+            ((0, 0), "West"): safe,
             ((2, 4), "East"): writing("Congrats!\n\nYou have found the exit."),
             ((2, 4), "West"): writing("Hope you enjoyed the trip!"),
             ((1, 4), "South"): writing("Sorry, this is a dead end :("),
