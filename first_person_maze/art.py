@@ -54,7 +54,12 @@ def frame_art(art, dimension):
     return art(coord)
   return result
 
-def create_frame(size_x, size_y, standard = True): # TODO use a more expressive name instead of standard
+default_frame_style = {
+    "corner": "+",
+    "vertical": "|",
+    "horizontal": "-"
+}
+def create_frame(size_x, size_y, style = default_frame_style):
   x_range = range(size_x)
   y_range = range(size_y)
   x_inside = range(1, size_x - 1)
@@ -64,11 +69,11 @@ def create_frame(size_x, size_y, standard = True): # TODO use a more expressive 
     if (x not in x_range) or (y not in y_range):
       return TRANSPARENT
     if (x not in x_inside) and (y not in y_inside):
-      return "+" if standard else "O"
+      return style.get("corner")
     if x not in x_inside:
-      return "-" if standard else "="
+      return style.get("horizontal")
     if y not in y_inside:
-      return "|"
+      return style.get("vertical")
     return TRANSPARENT
   return result
 
@@ -192,7 +197,8 @@ left_corridor = translate(create("""
 """[1:]), (3, 3))
 
 close_wall = create_frame(14, 15)
-close_wall_interacting = create_frame(14, 15, False)
+interaction_style = dict(default_frame_style, **{"corner": "O", "horizontal": "="})
+close_wall_interacting = create_frame(14, 15, interaction_style)
 clock_frame = create_frame(3, 9)
 
 def get_writing_art(writing):

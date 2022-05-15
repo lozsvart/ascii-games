@@ -90,7 +90,7 @@ class Lever:
 
     def interact(self, command):
         if command in {Command.UP, Command.DOWN}:
-            self.on = command == Command.DOWN
+            self.on = command == Command.UP
 
 def simple_door(start, end):
     return Door()
