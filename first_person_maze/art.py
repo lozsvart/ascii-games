@@ -54,7 +54,7 @@ def frame_art(art, dimension):
     return art(coord)
   return result
 
-def create_frame(size_x, size_y):
+def create_frame(size_x, size_y, standard = True): # TODO use a more expressive name instead of standard
   x_range = range(size_x)
   y_range = range(size_y)
   x_inside = range(1, size_x - 1)
@@ -64,9 +64,9 @@ def create_frame(size_x, size_y):
     if (x not in x_range) or (y not in y_range):
       return TRANSPARENT
     if (x not in x_inside) and (y not in y_inside):
-      return "+"
+      return "+" if standard else "O"
     if x not in x_inside:
-      return "-"
+      return "-" if standard else "="
     if y not in y_inside:
       return "|"
     return TRANSPARENT
@@ -192,6 +192,7 @@ left_corridor = translate(create("""
 """[1:]), (3, 3))
 
 close_wall = create_frame(14, 15)
+close_wall_interacting = create_frame(14, 15, False)
 clock_frame = create_frame(3, 9)
 
 def get_writing_art(writing):
@@ -255,11 +256,13 @@ def get_maze_symbol(row, column, doors):
 def render_status(maze, status, maze_art):
     arts = {}
     for direction in DIRECTIONS:
+        relative_direction = get_relative_direction(status["direction"], direction)
         junction = get_junction(status, maze.doors, direction)
-        first_person_art = create_first_person_art(junction, direction,
-                                                   get_wall_decoration(status, maze.wall_decors, direction))
+        is_interacting = status["interacting"] and relative_direction == "front"
+        first_person_art = create_first_person_art(junction,
+                                                   get_wall_decoration(status, maze.wall_decors, direction), is_interacting)
         arts[direction] = first_person_art
-        arts[get_relative_direction(status["direction"], direction)] = first_person_art
+        arts[relative_direction] = first_person_art
     map_art = maze_art if SHOW_MAP else create("")
 
     art = union([
@@ -305,10 +308,10 @@ def get_short_corridor(goes_left, goes_right):
 
     return union(parts)
 
-def create_first_person_art(junction, label, wall_decoration):
+def create_first_person_art(junction, wall_decoration, is_interacting):
     if 'back' not in junction:
-        result = union([close_wall,
-                      translate(wall_decoration, (1, 1))])
+        wall = close_wall_interacting if is_interacting else close_wall
+        result = union([wall, translate(wall_decoration, (1, 1))])
     else:
         parts = [open_adjacent_door]
         goes_left = 'left' in junction

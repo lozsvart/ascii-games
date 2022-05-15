@@ -37,17 +37,24 @@ def is_valid_move(location, destination, maze):
 
 def do_move_and_get_status(direction, status, maze):
     location = status["location"]
-    destination = add_tuples(direction, status["location"])
+    destination = add_tuples(direction, location)
     if is_valid_move(location, destination, maze):
         return {
             "location": destination,
             "direction": direction,
+            "interacting": status["interacting"],
             "explored": status["explored"] + [destination]
         }
 
     return status
 
-def do_interaction(status, maze):
+def has_wall_in_front_of_player(status, maze):
+    location = status["location"]
+    direction = status["direction"]
+    destination = add_tuples(direction, location)
+    return not is_valid_move(location, destination, maze)
+
+def do_interaction(status, maze, command):
     location = status["location"]
     direction = {
         N: "North",
@@ -57,10 +64,12 @@ def do_interaction(status, maze):
     }.get(status["direction"])
     obj = maze.wall_decors.get((location, direction))
     if obj is not None:
-        obj.interact()
+        obj.interact(command)
     return status
 
 def get_new_status(command, status, maze):
+    if status["interacting"] and command != Command.A:
+        return do_interaction(status, maze, command)
     if command in {Command.UP, Command.RIGHT, Command.LEFT}:
         direction = get_direction(command, status["direction"])
         if command == Command.UP:
@@ -69,16 +78,20 @@ def get_new_status(command, status, maze):
             return {
                 "location": status["location"],
                 "direction": direction,
+                "interacting": status["interacting"],
                 "explored": status["explored"]
             }
-    if command in {Command.A}:
-        return do_interaction(status, maze)
+    if command == Command.A:
+        return dict(status, **{
+            "interacting": not status["interacting"] and has_wall_in_front_of_player(status, maze)
+        })
     return status       
 
 def get_default_status():
     return {
         "location": (0, 0),
         "direction": N,
+        "interacting": False,
         "explored": [(0, 0)]
     }
 
@@ -96,9 +109,9 @@ class WallObject:
     def get_art(self):
         return self.art
 
-    def interact(self):
-        if self.wire is not None:
-            self.wire.status = not self.wire.status
+    def interact(self, command):
+        if self.wire is not None and command in {Command.UP, Command.DOWN}:
+            self.wire.status = command == Command.UP
 
 class Wire:
     def __init__(self):
