@@ -34,9 +34,9 @@ if __name__ == "__main__":
     
     frm = ttk.Frame(root, padding=10)
     frm.grid()
-    text_area = Text(frm, height = 46, width = 72, font = ("Courier", 14))
+    text_area = Text(frm, height = 30, width = 72, font = ("Courier", 14))
     text_area.grid(column=0, row=0)
     update_view()
     root.bind('<KeyPress>', lambda event: press(event, text_area))
-    root.title("Widgets")
+    root.title("The Maze Game")
     root.mainloop()

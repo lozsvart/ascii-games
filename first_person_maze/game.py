@@ -1,4 +1,4 @@
-from first_person_maze.old_maze import *
+from first_person_maze.maze import *
 from first_person_maze.command import Command
 
 class Game:

@@ -11,10 +11,6 @@ class Door:
     def is_open(self):
         return self.open_provider()
 
-    @staticmethod
-    def closed_door():
-        return Door(lambda: False) 
-
 def wall_clock():
   clock = create_var(lambda: datetime.datetime.now().strftime("%H:%M"))
   return WallObject(translate(union([clock_frame, translate(clock, (1, 2))]), (3, 2)))
@@ -38,12 +34,11 @@ def do_move_and_get_status(direction, status, maze):
     location = status["location"]
     destination = add_tuples(direction, location)
     if is_valid_move(location, destination, maze):
-        return {
+        return dict(status, **{
             "location": destination,
             "direction": direction,
-            "interacting": status["interacting"],
             "explored": status["explored"] + [destination]
-        }
+        })
 
     return status
 
@@ -74,29 +69,18 @@ def get_new_status(command, status, maze):
         if command == Command.UP:
             return do_move_and_get_status(direction, status, maze)
         else:
-            return {
-                "location": status["location"],
-                "direction": direction,
-                "interacting": status["interacting"],
-                "explored": status["explored"]
-            }
+            return dict(status, **{
+                "direction": direction
+            })
     if command == Command.A:
         return dict(status, **{
             "interacting": not status["interacting"] and has_wall_in_front_of_player(status, maze)
         })
-    return status       
-
-def get_default_status():
-    return {
-        "location": (0, 0),
-        "direction": N,
-        "interacting": False,
-        "explored": [(0, 0)]
-    }
+    return status
 
 class Lever:
-    def __init__(self):
-        self.on = False
+    def __init__(self, on = False):
+        self.on = on
 
     def get_art(self):
         return translate(create("\n\nO\n|\n|" if self.is_on() else "|\n|\nO"), (4, 6))
@@ -155,10 +139,17 @@ class Maze:
         self.doors = doors
         self.wall_decors = wall_decors
 
+def get_default_status():
+    return {
+        "location": (0, 0),
+        "direction": N,
+        "interacting": False,
+        "explored": [(0, 0)]
+    }
+
 def get_default_maze():
-    safe = Safe("300")
-    lever_1 = Lever()
-    lever_2 = Lever()
+    safes = [Safe("404")]
+    levers = [Lever(), Lever(True)]
 
     door_locations = [{(3, 1), (2, 1)}, {(0, 1), (0, 0)}, {(3, 0), (2, 0)},
                     {(4, 2), (4, 3)}, {(0, 1), (1, 1)}, {(4, 4), (3, 4)}, {(3, 3), (4, 3)},
@@ -169,22 +160,21 @@ def get_default_maze():
     ]
     doors = {create_edge(*location): Door() for location in door_locations}
     doors.update({
-        frozenset({(1, 0), (0, 0)}): Door(lever_1.is_on),
-        frozenset({(1, 2), (1, 3)}): Door(lever_2.is_on),
-        frozenset({(4, 3), (4, 4)}): Door(safe.is_open)
+        create_edge((1, 0), (0, 0)): Door(levers[0].is_on),
+        create_edge((1, 2), (1, 3)): Door(levers[1].is_on),
+        create_edge((4, 3), (4, 4)): Door(safes[0].is_open)
     })
     return Maze(
         dimension = (5, 5),
         doors = doors,
         wall_decors = {
             ((0, 0), "North"): writing("Controls: up, down, left, right and space"),
-            ((1, 4), "East"): lever_1,
-            ((1, 2), "South"): lever_2,
-            ((1, 3), "East"): writing("Hint for the code:\nThis is Sparta!!!"),
-            ((0, 0), "West"): safe,
-            ((2, 4), "East"): writing("Congrats!\n\nYou have found the exit."),
-            ((2, 4), "West"): writing("Hope you enjoyed the trip!"),
-            ((1, 4), "South"): writing("Try pulling the lever"),
+            ((1, 4), "East"): levers[0],
+            ((1, 3), "South"): levers[1],
+            ((1, 3), "West"): writing("Hint:\nNOT FOUND"),
+            ((3, 0), "South"): safes[0],
+            ((2, 4), "North"): writing("Congrats!\n\nYou have found the exit."),
+            ((1, 3), "North"): writing("Try pulling the lever"),
             ((2, 0), "East"): wall_clock()
         }
-        )
+    )
