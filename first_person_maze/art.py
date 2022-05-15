@@ -271,7 +271,7 @@ def render_status(maze, status, maze_art):
              translate(arts["left"], (15, 0)),
              translate(map_art, (16, 18))
     ])
-    return render_art(art, (46, 49))
+    return render_art(art, (29, 49))
 
 def split_text(text, max_width = 11):
     def split_paragraph(paragraph, max_width):
@@ -333,4 +333,3 @@ def get_wall_decoration(status, wall_decorations, direction):
     location = status["location"]
     wall_decor = wall_decorations.get((location, direction))
     return wall_decor.get_art() if wall_decor != None else create_empty()
-

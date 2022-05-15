@@ -94,37 +94,45 @@ def get_default_status():
         "explored": [(0, 0)]
     }
 
-def lever(wire):
-    return WallObject(translate(create_var(lambda: "O\n|\n|" if wire.is_on() else "\n\n|\n|\nO"), (4, 6)), wire)
+class Lever:
+    def __init__(self):
+        self.on = False
+
+    def get_art(self):
+        return translate(create("\n\nO\n|\n|" if self.is_on() else "|\n|\nO"), (4, 6))
+    
+    def is_on(self):
+        return self.on
+
+    def interact(self, command):
+        if command in {Command.UP, Command.DOWN}:
+            self.on = command == Command.DOWN
 
 def simple_door(start, end):
     return Door()
 
 class WallObject:
-    def __init__(self, art, wire = None):
+    def __init__(self, art):
         self.art = art
-        self.wire = wire
 
     def get_art(self):
         return self.art
 
     def interact(self, command):
-        if self.wire is not None and command in {Command.UP, Command.DOWN}:
-            self.wire.status = command == Command.UP
+        pass
 
 class Safe:
-    def __init__(self, solution, wire = None):
+    def __init__(self, solution):
         self.solution = list(map(int, solution))
         self.selected = 0
         self.counters = [0] * len(solution)
-        self.wire = wire
 
     def get_art(self):
         number = "".join(map(str, self.counters))
         selector = " " * self.selected + "^"
         return translate(create(number + "\n" + selector), (5, 6 - len(self.solution) // 2))
 
-    def is_solved(self):
+    def is_open(self):
         return self.counters == self.solution
 
     def interact(self, command):
@@ -141,16 +149,6 @@ class Safe:
             self.counters[i] %= 10
         self.selected %= len(self.counters)
 
-        if self.wire is not None:
-            self.wire.status = self.is_solved()
-
-class Wire:
-    def __init__(self):
-        self.status = False
-    
-    def is_on(self):
-        return self.status
-
 class Maze:
     def __init__(self, dimension, doors, wall_decors):
         self.dimension = dimension
@@ -158,10 +156,9 @@ class Maze:
         self.wall_decors = wall_decors
 
 def get_default_maze():
-    wire_1 = Wire()
-    wire_2 = Wire()
-    wire_3 = Wire()
-    safe = Safe("300", wire_3)
+    safe = Safe("300")
+    lever_1 = Lever()
+    lever_2 = Lever()
 
     door_locations = [{(3, 1), (2, 1)}, {(0, 1), (0, 0)}, {(3, 0), (2, 0)},
                     {(4, 2), (4, 3)}, {(0, 1), (1, 1)}, {(4, 4), (3, 4)}, {(3, 3), (4, 3)},
@@ -170,23 +167,24 @@ def get_default_maze():
                     {(2, 0), (1, 0)}, {(2, 1), (2, 2)}, {(1, 2), (1, 1)}, {(3, 0), (3, 1)},
                     {(0, 3), (0, 4)}, {(4, 4), (4, 3)}, {(2, 3), (3, 3)}, {(3, 1), (4, 1)}
     ]
-    doors = {frozenset(location): Door() for location in door_locations}
+    doors = {create_edge(*location): Door() for location in door_locations}
     doors.update({
-        frozenset({(1, 0), (0, 0)}): Door(wire_1.is_on),
-        frozenset({(1, 2), (1, 3)}): Door(wire_2.is_on),
-        frozenset({(4, 3), (4, 4)}): Door(wire_3.is_on)
+        frozenset({(1, 0), (0, 0)}): Door(lever_1.is_on),
+        frozenset({(1, 2), (1, 3)}): Door(lever_2.is_on),
+        frozenset({(4, 3), (4, 4)}): Door(safe.is_open)
     })
     return Maze(
         dimension = (5, 5),
         doors = doors,
         wall_decors = {
             ((0, 0), "North"): writing("Controls: up, down, left, right and space"),
-            ((1, 4), "East"): lever(wire_1),
-            ((1, 2), "South"): lever(wire_2),
+            ((1, 4), "East"): lever_1,
+            ((1, 2), "South"): lever_2,
+            ((1, 3), "East"): writing("Hint for the code:\nThis is Sparta!!!"),
             ((0, 0), "West"): safe,
             ((2, 4), "East"): writing("Congrats!\n\nYou have found the exit."),
             ((2, 4), "West"): writing("Hope you enjoyed the trip!"),
-            ((1, 4), "South"): writing("Sorry, this is a dead end :("),
+            ((1, 4), "South"): writing("Try pulling the lever"),
             ((2, 0), "East"): wall_clock()
         }
         )
