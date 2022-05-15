@@ -9,6 +9,14 @@ def negate(vector):
 def add_tuples(v1, v2):
   return tuple(map(add, v1, v2))
 
+def within(v, bound_1, bound_2):
+    x_min = min(bound_1[0], bound_2[0])
+    x_max = max(bound_1[0], bound_2[0])
+    y_min = min(bound_1[1], bound_2[1])
+    y_max = max(bound_1[1], bound_2[1])
+    x, y = v
+    return (min(max(x_min, x), x_max), min(max(y_min, y), y_max))
+
 def create_edge(v1, v2):
   return frozenset({v1, v2})
 

@@ -1,6 +1,7 @@
 from first_person_maze.command import Command
 from first_person_maze.art import *
 from first_person_maze.maze_math import *
+from first_person_maze.lights_out import LightsOut
 
 import datetime
 
@@ -150,6 +151,7 @@ def get_default_status():
 def get_default_maze():
     safes = [Safe("404")]
     levers = [Lever(), Lever(True)]
+    lights_out = LightsOut()
 
     door_locations = [{(3, 1), (2, 1)}, {(0, 1), (0, 0)}, {(3, 0), (2, 0)},
                     {(4, 2), (4, 3)}, {(0, 1), (1, 1)}, {(4, 4), (3, 4)}, {(3, 3), (4, 3)},
@@ -162,17 +164,20 @@ def get_default_maze():
     doors.update({
         create_edge((1, 0), (0, 0)): Door(levers[0].is_on),
         create_edge((1, 2), (1, 3)): Door(levers[1].is_on),
-        create_edge((4, 3), (4, 4)): Door(safes[0].is_open)
+        create_edge((4, 3), (4, 4)): Door(safes[0].is_open),
+        create_edge((4, 0), (4, 1)): Door(lights_out.is_solved)
     })
     return Maze(
         dimension = (5, 5),
         doors = doors,
         wall_decors = {
-            ((0, 0), "North"): writing("Controls: up, down, left, right and space"),
-            ((0, 0), "West"): writing("Space switches between movement and interactive mode"),
+            ((0, 0), "North"): writing("Controls: up, down, left, right, enter and space"),
             ((1, 4), "East"): levers[0],
+            ((3, 2), "East"): lights_out,
+            ((0, 0), "West"): writing("Space switches between movement and interactive mode"),
             ((1, 3), "South"): levers[1],
             ((1, 3), "West"): writing("Hint:\nNOT FOUND"),
+            ((4, 0), "West"): writing("Nice job!\nYou've found the secret room"),
             ((3, 0), "South"): safes[0],
             ((2, 4), "North"): writing("Congrats!\n\nYou have found the exit"),
             ((1, 3), "North"): writing("Try pulling the lever"),
