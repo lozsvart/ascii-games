@@ -83,7 +83,7 @@ class Lever:
         self.on = on
 
     def get_art(self):
-        return translate(create("\n\nO\n|\n|" if self.is_on() else "|\n|\nO"), (4, 6))
+        return translate(create("\n\nO\n|\n|" if not self.is_on() else "|\n|\nO"), (4, 6))
     
     def is_on(self):
         return self.on
@@ -169,11 +169,12 @@ def get_default_maze():
         doors = doors,
         wall_decors = {
             ((0, 0), "North"): writing("Controls: up, down, left, right and space"),
+            ((0, 0), "West"): writing("Space switches between movement and interactive mode"),
             ((1, 4), "East"): levers[0],
             ((1, 3), "South"): levers[1],
             ((1, 3), "West"): writing("Hint:\nNOT FOUND"),
             ((3, 0), "South"): safes[0],
-            ((2, 4), "North"): writing("Congrats!\n\nYou have found the exit."),
+            ((2, 4), "North"): writing("Congrats!\n\nYou have found the exit"),
             ((1, 3), "North"): writing("Try pulling the lever"),
             ((2, 0), "East"): wall_clock()
         }
